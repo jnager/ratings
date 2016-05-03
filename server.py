@@ -63,6 +63,35 @@ def login():
         flash("You've been added and you are logged in.")
         return render_template("homepage.html")
 
+@app.route('/logout')
+def logout():
+    """logs user out"""
+
+    # removes user from session
+    session.pop("logged_in_email", None)
+
+    # gives user feedback on their logout action
+    flash("You have been logged out.")
+
+    # routes to homepage
+    return render_template("homepage.html")
+
+
+@app.route('/users/<user_id>')
+def show_user_info(user_id):
+
+    user = User.query.get(user_id)
+
+    # Write query to get movie title and rating score for relevant user id
+    movie_ratings = db.session.query(User.user_id, 
+                                     Movie.title, 
+                                     Rating.score).filter_by(user_id=user_id).join(Rating).join(Movie).all()
+
+
+    # Assign an identifier to the result of our query.all()
+
+    return render_template("user.html", user=user, ratings=movie_ratings)
+
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
