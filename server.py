@@ -83,9 +83,8 @@ def show_user_info(user_id):
     user = User.query.get(user_id)
 
     # Write query to get movie title and rating score for relevant user id
-    movie_ratings = db.session.query(Rating.user_id, 
-                                     Movie.title, 
-                                     Rating.score).filter_by(user_id=user_id).join(Movie).all()
+    movie_ratings = db.session.query(Rating.score, 
+                                     Movie.title).filter_by(user_id=user_id).join(Movie).all()
 
 
     # Assign an identifier to the result of our query.all()
