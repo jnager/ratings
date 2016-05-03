@@ -9,6 +9,7 @@ from model import connect_to_db, db, User, Rating, Movie
 
 
 app = Flask(__name__)
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 # Required to use Flask sessions and the debug toolbar
 app.secret_key = "ABC"
@@ -24,12 +25,32 @@ def index():
 
     return render_template("homepage.html")
 
+
 @app.route('/users')
 def user_list():
     """Show list of users."""
 
     users = User.query.all()
     return render_template("user_list.html", users=users)
+
+
+@app.route('/movies')
+def list_movies():
+    """shows a list of all movies with links to each movie's page"""
+
+    movies = db.session.query(Movie).all()
+    movies_lists = []
+    for movie in movies:
+        if movie.released_at:
+            movies_lists.append([movie.title, movie.released_at.strftime("%b %d, %Y")])
+        elif movie.title:
+            movies_lists.append([movie.title, "unknown"])
+
+    movies_lists.sort()
+
+    return render_template("movies.html", movies=movies_lists)
+
+
 
 @app.route('/login', methods=["POST"])
 def login():
@@ -48,7 +69,7 @@ def login():
             # add username to session
             flash("Successfully logged in.")
             session['logged_in_email'] = db_user.email
-            return render_template("homepage.html")
+            return redirect("/users/"+str(db_user.user_id))
         else:
             flash("Incorrect password.")
             # flash message alerting them to incorrect password
@@ -61,7 +82,8 @@ def login():
         db.session.commit()
         session['logged_in_email'] = email
         flash("You've been added and you are logged in.")
-        return render_template("homepage.html")
+        return redirect("/users/"+str(new_user.user_id))
+
 
 @app.route('/logout')
 def logout():
@@ -77,7 +99,7 @@ def logout():
     return render_template("homepage.html")
 
 
-@app.route('/users/<user_id>')
+@app.route('/users/<int:user_id>')
 def show_user_info(user_id):
 
     user = User.query.get(user_id)
@@ -90,6 +112,9 @@ def show_user_info(user_id):
     # Assign an identifier to the result of our query.all()
 
     return render_template("user.html", user=user, ratings=movie_ratings)
+
+
+
 
 
 if __name__ == "__main__":

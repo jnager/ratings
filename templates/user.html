@@ -5,7 +5,7 @@
     <ul>
       <li>Age: {{ user.age }}</li>
       <li>Zipcode: {{ user.zipcode }}</li>
-      
+      {% if ratings %}
       <table>
         <thead>
           <tr>
@@ -22,6 +22,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% endif %}
     </ul>
 
 {% endblock %}
