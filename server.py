@@ -2,10 +2,11 @@
 
 from jinja2 import StrictUndefined
 
-from flask import Flask, render_template, redirect, request, flash, session 
+from flask import Flask, render_template, redirect, request, flash, session, jsonify
 from flask_debugtoolbar import DebugToolbarExtension
 
 from model import connect_to_db, db, User, Rating, Movie
+
 
 
 app = Flask(__name__)
@@ -140,17 +141,40 @@ def show_movie_info(title):
                            avg_score=avg_score,
                            user_score=user_score)
 
-@app.route('/submit-rating', methods=["POST"])
+@app.route('/submit-rating.json', methods=["POST"])
 def submit_user_rating():
     """adds a new rating or edits an existing rating to the database"""
 
+    # gets user_email, movie_id, and score from the rating form submission
     user_email = request.form.get('user-email')
     movie_id = request.form.get('movie-id')
-
-    # if user has a score, change the database
-    # if user is new to scores this movie, create a score
-    # use AJAX so user is not directed to a new page (in HTML)
-
+    users_score = request.form.get('user-rating')
+    # get user_id from db using user_email
+    user_id = db.session.query(User).filter(user_email==User.email).first().user_id
+    # get user rating object from db (for specific user and movie id)
+    users_rating = db.session.query(Rating).filter(Rating.movie_id==movie_id,
+                                                   Rating.user_id==user_id).first()
+    
+    updateMessage = ""
+    # check if user has previously rated movie
+    if users_rating:
+        # update previous rating
+        users_rating.score = users_score
+        updateMessage = "Your rating has been updated to " + str(users_score)
+    # create new rating instance for specific user and movie id
+    else:
+        users_rating = Rating(user_id=user_id,
+                              movie_id=movie_id,
+                              score=users_score)
+        # Add rating instance to db
+        db.session.add(users_rating)
+        updateMessage = "A new score of " + str(users_score) + " has been added."
+    # Commit new score or new Rating object to db
+    db.session.commit()
+    # Create dictionary indicating success
+    returnValue = {"message": updateMessage}
+    return jsonify(returnValue)
+    
 
 
 if __name__ == "__main__":

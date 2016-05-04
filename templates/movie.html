@@ -4,7 +4,7 @@
     <h2>{{ movie.title }} Profile</h2>
 
     <div id="movie-rating">
-      <form action="/submit-rating" method="POST">
+      <form action="/submit-rating.json" method="POST" id="movie-rating-form">
         <h3>Rate this movie</h3>
         {% if user_score %}
         <p>Your current rating for the movie is {{ user_score }}</p>
@@ -14,6 +14,7 @@
         <input type="hidden" name="user-email" value="{{ session.get('logged_in_email') }}">
         <input type="hidden" name="movie-id" value="{{ movie.movie_id }}">
         <input type="submit">
+        <div id="update-message"></div>
       </form>
     </div>
 
@@ -43,5 +44,19 @@
       </table>
       {% endif %}
     </ul>
+
+    <script>
+      function flashUpdateMessage (data) {
+        $("#update-message").text(data["message"]);
+      }
+
+      function updateUserRating(evt) {
+        evt.preventDefault();
+        var formValues = $("#movie-rating-form").serialize();
+        $.post("/submit-rating.json", formValues, flashUpdateMessage);
+      }
+
+      $("#movie-rating-form").on("submit", updateUserRating);
+    </script>
 
 {% endblock %}
