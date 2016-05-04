@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <h2>{{ movie.title }} Profile</h2>
+
+    <div id="movie-rating">
+      <form action="/submit-rating" method="POST">
+        <h3>Rate this movie</h3>
+        {% if user_score %}
+        <p>Your current rating for the movie is {{ user_score }}</p>
+        <p>To change your score, enter a new score below</p>
+        {% endif %}
+        <label>Score (1=bad, 5=great): <input type="number" name="user-rating" min="1" max="5" value="{{ user_score }}"></label>
+        <input type="hidden" name="user-email" value="{{ session.get('logged_in_email') }}">
+        <input type="hidden" name="movie-id" value="{{ movie.movie_id }}">
+        <input type="submit">
+      </form>
+    </div>
+
+    <ul>
+      <li>Release Date: {{ movie.released_at }}</li>
+      <li><a href="{{ movie.imdb_url }}">IMDB Link</a></li>
+      {% if score_info %}
+      <table class="table-striped table-hover">
+        <thead>
+          <tr>
+            <th>User email</th>
+            <th>User Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for score in score_info %}
+          <tr>
+            <td>{{ score[1] }}</td>
+            <td>{{ score[2] }}</td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td><b>Average Score:</b></td>
+            <td><b>{{ avg_score }} </b> out of 5</td>
+          </tr>
+        </tbody>
+      </table>
+      {% endif %}
+    </ul>
+
+{% endblock %}
