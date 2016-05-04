@@ -114,6 +114,42 @@ def show_user_info(user_id):
     return render_template("user.html", user=user, ratings=movie_ratings)
 
 
+@app.route('/movies/<title>')
+def show_movie_info(title):
+
+    movie = db.session.query(Movie).filter_by(title=title).first()
+
+    score_info = db.session.query(Movie.title,
+                                  User.email,
+                                  Rating.score).filter_by(title=title).join(Rating).join(User).all()
+
+    all_scores = []
+    for score in score_info:
+        all_scores.append(int(score[2]))
+    avg_score = round(float(sum(all_scores)) / len(all_scores), 1)
+
+    user_score = None
+    for tup in score_info:
+        if session.get("logged_in_email"):
+            if tup[1] == session["logged_in_email"]:
+                user_score = tup[2]
+
+    return render_template("movie.html",
+                           movie=movie,
+                           score_info=score_info,
+                           avg_score=avg_score,
+                           user_score=user_score)
+
+@app.route('/submit-rating', methods=["POST"])
+def submit_user_rating():
+    """adds a new rating or edits an existing rating to the database"""
+
+    user_email = request.form.get('user-email')
+    movie_id = request.form.get('movie-id')
+
+    # if user has a score, change the database
+    # if user is new to scores this movie, create a score
+    # use AJAX so user is not directed to a new page (in HTML)
 
 
 
