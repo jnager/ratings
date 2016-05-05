@@ -70,18 +70,20 @@ def login():
             # add username to session
             flash("Successfully logged in.")
             session['logged_in_email'] = db_user.email
+            session['logged_in_user_id'] = db_user.user_id
             return redirect("/users/"+str(db_user.user_id))
         else:
             flash("Incorrect password.")
             # flash message alerting them to incorrect password
             # redirect back to homepage
-            return render_template("homepage.html")
+            return redirect("/")
     else: 
         # make uswer
         new_user = User(email=email, password=password)
         db.session.add(new_user)
         db.session.commit()
         session['logged_in_email'] = email
+        session['logged_in_user_id'] = new_user.user_id
         flash("You've been added and you are logged in.")
         return redirect("/users/"+str(new_user.user_id))
 
@@ -97,7 +99,7 @@ def logout():
     flash("You have been logged out.")
 
     # routes to homepage
-    return render_template("homepage.html")
+    return redirect("/")
 
 
 @app.route('/users/<int:user_id>')
@@ -119,14 +121,13 @@ def show_user_info(user_id):
 def show_movie_info(title):
 
     movie = db.session.query(Movie).filter_by(title=title).first()
+    user_id = session.get("logged_in_user_id")
 
     score_info = db.session.query(Movie.title,
                                   User.email,
                                   Rating.score).filter_by(title=title).join(Rating).join(User).all()
 
-    all_scores = []
-    for score in score_info:
-        all_scores.append(int(score[2]))
+    all_scores = [int(score_item[2]) for score_item in score_info]
     avg_score = round(float(sum(all_scores)) / len(all_scores), 1)
 
     user_score = None
@@ -135,11 +136,18 @@ def show_movie_info(title):
             if tup[1] == session["logged_in_email"]:
                 user_score = tup[2]
 
+    prediction = None
+    if (not user_score) and user_id:
+        user = User.query.get(user_id)
+        if user:
+            prediction = round(user.predict_rating(movie.movie_id),1)
+
     return render_template("movie.html",
                            movie=movie,
                            score_info=score_info,
                            avg_score=avg_score,
-                           user_score=user_score)
+                           user_score=user_score,
+                           prediction=prediction)
 
 @app.route('/submit-rating.json', methods=["POST"])
 def submit_user_rating():
@@ -172,9 +180,12 @@ def submit_user_rating():
     # Commit new score or new Rating object to db
     db.session.commit()
     # Create dictionary indicating success
-    returnValue = {"message": updateMessage}
+    returnValue = {"message": updateMessage, "score": users_score}
     return jsonify(returnValue)
     
+
+
+
 
 
 if __name__ == "__main__":

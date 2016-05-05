@@ -1,14 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
 
-    <h2>{{ movie.title }} Profile</h2>
+    <h2>{{ movie.title }}</h2>
 
     <div id="movie-rating">
       <form action="/submit-rating.json" method="POST" id="movie-rating-form">
         <h3>Rate this movie</h3>
         {% if user_score %}
-        <p>Your current rating for the movie is {{ user_score }}</p>
+        <p>Your current rating for the movie is <span id="current-score">{{ user_score }}</span></p>
         <p>To change your score, enter a new score below</p>
+        {% else %}
+        <p>You'll *probably* rate this movie a {{ prediction }} out of 5.</p>
         {% endif %}
         <label>Score (1=bad, 5=great): <input type="number" name="user-rating" min="1" max="5" value="{{ user_score }}"></label>
         <input type="hidden" name="user-email" value="{{ session.get('logged_in_email') }}">
@@ -48,6 +50,7 @@
     <script>
       function flashUpdateMessage (data) {
         $("#update-message").text(data["message"]);
+        $("#current-score").text(data["score"])
       }
 
       function updateUserRating(evt) {
