@@ -73,6 +73,7 @@ class User(db.Model):
         correlations.sort(reverse=True)
         # removes negatively correlated ratings from the list
         correlations = [(sim, rating) for sim, rating in correlations if sim > 0]
+
         # if no positively correlated users, return None
         if not correlations:
             return None
@@ -80,7 +81,7 @@ class User(db.Model):
         numerator = sum([rating.score * sim for sim, rating in correlations])
         denominator = sum([sim for sim, rating in correlations])
         
-        return numerator/denominator
+        return float(numerator)/denominator
 
 
     def __repr__(self):

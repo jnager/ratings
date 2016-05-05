@@ -19,6 +19,16 @@ app.secret_key = "ABC"
 # This is horrible. Fix this so that, instead, it raises an error.
 app.jinja_env.undefined = StrictUndefined
 
+THE_EYE_EMAIL = "the-eye@of-judgement.com"
+
+BERATEMENT_MESSAGES = [
+        "I suppose you don't have such bad taste after all.",
+        "I regret every decision that I've ever made that has brought me" +
+            " to listen to your opinion.",
+        "Words fail me, as your taste in movies has clearly failed you.",
+        "That movie is great. For a clown to watch. Idiot.",
+        "Words cannot express the awfulness of your taste."
+    ]
 
 @app.route('/')
 def index():
@@ -120,34 +130,68 @@ def show_user_info(user_id):
 @app.route('/movies/<title>')
 def show_movie_info(title):
 
+    # gets a movie object based on title
     movie = db.session.query(Movie).filter_by(title=title).first()
+    # gets a user id from the logged in user
     user_id = session.get("logged_in_user_id")
-
+    # makes a list of tuples: (title, user_email, score)
     score_info = db.session.query(Movie.title,
                                   User.email,
                                   Rating.score).filter_by(title=title).join(Rating).join(User).all()
-
+    # finds average score for current movie
     all_scores = [int(score_item[2]) for score_item in score_info]
     avg_score = round(float(sum(all_scores)) / len(all_scores), 1)
-
+    # getting the current user's score of the current movie, if they rated it
     user_score = None
     for tup in score_info:
         if session.get("logged_in_email"):
             if tup[1] == session["logged_in_email"]:
                 user_score = tup[2]
-
+    # if user hasn't rated movie, assigns prediction
     prediction = None
     if (not user_score) and user_id:
         user = User.query.get(user_id)
         if user:
-            prediction = round(user.predict_rating(movie.movie_id),1)
+            # Could be None if not enough relevant correlations were found
+            # typically a float
+            prediction = user.predict_rating(movie.movie_id)
+    # If a valid prediction was created, clean up number
+    # Else use prediction_failed to convey failure message
+    if prediction:
+        prediction = round(prediction, 1)
+        prediction_failed = None
+    else:
+        prediction_failed = "Not enough ratings to predict your rating of this movie."
+    # deals with the eye and it's beratement
+    beratement = None
+    if user_score:
+        # gets eye object and rating for current movie
+        the_eye = db.session.query(User).filter_by(email=THE_EYE_EMAIL).one()
+        eye_rating = db.session.query(Rating).filter(Rating.user_id==the_eye.user_id,
+                        Rating.movie_id==movie.movie_id).first()
+        # use's eye's rating or assigns prediction to eye's rating
+        if eye_rating is None:
+            eye_prediction = the_eye.predict_rating(movie.movie_id)
+            if eye_prediction is None:
+                eye_prediction = abs(avg_score - 6)
+        else:
+            eye_prediction = eye_rating.score
+        # finds the difference between the eye and the user's ratings for beratment
+        if eye_prediction and user_score:
+            difference = abs(eye_prediction - user_score)
+            beratement = (BERATEMENT_MESSAGES[int(difference)] + 
+                          "The Eye would score this movie a " + 
+                          str(round(eye_prediction,1)))
+            
 
     return render_template("movie.html",
                            movie=movie,
                            score_info=score_info,
                            avg_score=avg_score,
                            user_score=user_score,
-                           prediction=prediction)
+                           prediction=prediction,
+                           prediction_failed=prediction_failed,
+                           beratement=beratement)
 
 @app.route('/submit-rating.json', methods=["POST"])
 def submit_user_rating():
@@ -162,7 +206,8 @@ def submit_user_rating():
     # get user rating object from db (for specific user and movie id)
     users_rating = db.session.query(Rating).filter(Rating.movie_id==movie_id,
                                                    Rating.user_id==user_id).first()
-    
+    movie = Movie.query.get(movie_id)
+
     updateMessage = ""
     # check if user has previously rated movie
     if users_rating:
@@ -180,8 +225,9 @@ def submit_user_rating():
     # Commit new score or new Rating object to db
     db.session.commit()
     # Create dictionary indicating success
-    returnValue = {"message": updateMessage, "score": users_score}
-    return jsonify(returnValue)
+    # returnValue = {"message": updateMessage, "score": users_score}
+    # return jsonify(returnValue)
+    return redirect("/movies/"+str(movie.title))
     
 
 
