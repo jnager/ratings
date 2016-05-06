@@ -186,6 +186,7 @@ def show_movie_info(title):
 
     return render_template("movie.html",
                            movie=movie,
+                           release_date=movie.released_at.strftime("%b %d, %Y"),
                            score_info=score_info,
                            avg_score=avg_score,
                            user_score=user_score,
@@ -193,20 +194,24 @@ def show_movie_info(title):
                            prediction_failed=prediction_failed,
                            beratement=beratement)
 
-@app.route('/submit-rating.json', methods=["POST"])
+@app.route('/submit-rating', methods=["POST"])
 def submit_user_rating():
     """adds a new rating or edits an existing rating to the database"""
+    movie_id = request.form.get('movie-id')
+    movie = Movie.query.get(movie_id)
 
+    if not session.get("logged_in_email"):
+        flash("You need to log in to rate movies.")
+        return redirect("/movies/"+str(movie.title))
     # gets user_email, movie_id, and score from the rating form submission
     user_email = request.form.get('user-email')
-    movie_id = request.form.get('movie-id')
     users_score = request.form.get('user-rating')
     # get user_id from db using user_email
     user_id = db.session.query(User).filter(user_email==User.email).first().user_id
     # get user rating object from db (for specific user and movie id)
     users_rating = db.session.query(Rating).filter(Rating.movie_id==movie_id,
                                                    Rating.user_id==user_id).first()
-    movie = Movie.query.get(movie_id)
+    
 
     updateMessage = ""
     # check if user has previously rated movie

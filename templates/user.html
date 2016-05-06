@@ -2,11 +2,10 @@
 {% block content %}
 
     <h2>{{ user.email }} Profile</h2>
-    <ul>
-      <li>Age: {{ user.age }}</li>
-      <li>Zipcode: {{ user.zipcode }}</li>
+    <p>Age: {{ user.age }}</p>
+    <p>Zipcode: {{ user.zipcode }}</p>
       {% if ratings %}
-      <table>
+      <table class="table table-striped">
         <thead>
           <tr>
             <th>Movie Title</th>
@@ -23,6 +22,5 @@
         </tbody>
       </table>
       {% endif %}
-    </ul>
 
 {% endblock %}
