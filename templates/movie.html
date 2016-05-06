@@ -1,61 +1,94 @@
 {% extends 'base.html' %}
 {% block content %}
 
-    <h2>{{ movie.title }}</h2>
+  <h2>{{ movie.title }}</h2>
+  <div class="row">
+    <div class="col-xs-4">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+            <h3>Rate this movie</h3>
+          </div>
+        <div class="panel-body">
+          <form action="/submit-rating.json" method="POST" id="movie-rating-form">
+                   
+            <div id="jinja-magic">
+            {% if user_score %}
+            <p>Your current rating for the movie is <span id="current-score">{{ user_score }}</span></p>
+            <p>{{ beratement }}</p>
+            <p>To change your score, enter a new score below</p>
+            {% elif prediction_failed %}
+            <p>{{ prediction_failed }}</p>
+            {% else %}
+            <p>You'll *probably* rate this movie a {{ prediction }} out of 5.</p>
+            {% endif %}
+            </div>
+            <div id="rateYo" style="padding-bottom: 1em" value="{{ user_score }}"></div>
+            <input type="hidden" name="user-rating" id="star-rating">
+            <input type="hidden" name="user-email" value="{{ session.get('logged_in_email') }}">
+            <input type="hidden" name="movie-id" value="{{ movie.movie_id }}">
+            <button type="submit" class="btn btn-default">Submit</button>
+          </form>
 
-    <div id="movie-rating">
-      <form action="/submit-rating.json" method="POST" id="movie-rating-form">
-        <h3>Rate this movie</h3>
-        
-        <div id="jinja-magic">
-          
-        {% if user_score %}
-        <p>Your current rating for the movie is <span id="current-score">{{ user_score }}</span></p>
-        <p>{{ beratement }}</p>
-        <p>To change your score, enter a new score below</p>
-        
-        {% elif prediction_failed %}
-        <p>{{ prediction_failed }}</p>
-        
-        {% else %}
-        <p>You'll *probably* rate this movie a {{ prediction }} out of 5.</p>
-        {% endif %}
+
+
+
+
+
+
+
         </div>
-        
-        <label>Score (1=bad, 5=great): <input type="number" name="user-rating" min="1" max="5" value="{{ user_score }}"></label>
-        <input type="hidden" name="user-email" value="{{ session.get('logged_in_email') }}">
-        <input type="hidden" name="movie-id" value="{{ movie.movie_id }}">
-        <input type="submit">
-        <div id="update-message"></div>
-      </form>
+      </div>
     </div>
+    <div class="col-xs-8">
+      <ul>
+        <li>Release Date: {{ movie.released_at }}</li>
+        <li><a href="{{ movie.imdb_url }}">IMDB Link</a></li>
+        {% if score_info %}
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>User email</th>
+              <th>User Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for score in score_info %}
+            <tr>
+              <td>{{ score[1] }}</td>
+              <td>{{ score[2] }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+              <td><b>Average Score:</b></td>
+              <td><b>{{ avg_score }} </b> out of 5</td>
+            </tr>
+          </tbody>
+        </table>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
 
-    <ul>
-      <li>Release Date: {{ movie.released_at }}</li>
-      <li><a href="{{ movie.imdb_url }}">IMDB Link</a></li>
-      {% if score_info %}
-      <table class="table-striped table-hover">
-        <thead>
-          <tr>
-            <th>User email</th>
-            <th>User Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for score in score_info %}
-          <tr>
-            <td>{{ score[1] }}</td>
-            <td>{{ score[2] }}</td>
-          </tr>
-          {% endfor %}
-          <tr>
-            <td><b>Average Score:</b></td>
-            <td><b>{{ avg_score }} </b> out of 5</td>
-          </tr>
-        </tbody>
-      </table>
-      {% endif %}
-    </ul>
+<script>
+  $(function () {
+    $("#rateYo").rateYo({
+      rating: 0,
+      fullStar: true,
+      ratedFill: "#fff566"
+    });
+  });
+
+  $(function () {
+    var $rateYo = $("#rateYo").rateYo();
+    $("#rateYo").click(function () {
+      /* get rating */
+      var rating = $rateYo.rateYo("rating");
+      $("#star-rating").val(String(rating));
+      console.log("The rating is " + String(rating));
+    });
+  });
+
+</script>
 
     // <script>
     //   function flashUpdateMessage (data) {
